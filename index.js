@@ -2,6 +2,7 @@ import { config } from "dotenv";
 import { Client, GatewayIntentBits } from "discord.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { handleCommandGemini } from './commands/gemini.js';
+import  { handleMsgDelete } from './commands/msgDelete.js'
 
 config();
 
@@ -26,5 +27,14 @@ discordClient.on('messageCreate', async (message) => {
         handleCommandGemini(message, genAI);
     }
 });
- 
+
+discordClient.on('messageCreate', async (message) => {
+    if (message.author.bot || !message.guild) return;
+    const args = message.content.split(' ');
+
+    if (args[0] === '!msgDelete') {
+        handleMsgDelete(message);
+    }
+});
+
 discordClient.login(process.env.TOKEN_BOT).catch(console.error);
