@@ -10,18 +10,21 @@ export async function handleCommandGemini(message, genAI) {
         const response = await result.response;
         const text = await response.text();
 
-        const chunks = text.match(/(.|[\r\n]){1,1999}/g);
-
-        if (chunks && chunks.length > 0) {
-            await processingMessage.edit(`Resposta:\n${chunks[0]}`);
+        const chunkSize = 1999;
+        const chunks = [];
+        for (let i = 0; i < text.length; i += chunkSize) {
+            chunks.push(text.substring(i, i + chunkSize));
         }
 
-        // Envia cada parte restante como uma mensagem separada
-        for (let i = 1; i < chunks.length; i++) {
+        for (let i = 0; i < chunks.length; i++) {
             await message.channel.send(chunks[i]);
+            await new Promise(resolve => setTimeout(resolve, 500)); 
         }
+
+        await processingMessage.edit("Resposta: ");
 
     } catch (error) {
         console.error("Erro ao executar o comando Gemini:", error);
+        await message.channel.send("Ocorreu um erro ao gerar a resposta. Tente novamente mais tarde.");
     }
 }
