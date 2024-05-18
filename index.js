@@ -23,7 +23,7 @@ discordClient.on('ready', () => {
 discordClient.on('messageCreate', async (message) => {
     if (message.author.bot || !message.guild || message.channel.name.toLowerCase() !== "scripto") return;
     if (message.content.startsWith("!gemini")) {
-        handleCommandGemini(message, genAI);
+        await handleCommandGemini(message, genAI);
     }
 });
  
