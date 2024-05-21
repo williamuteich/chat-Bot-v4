@@ -7,6 +7,7 @@ import { config } from "dotenv";
 import { handleCommandGemini } from './commands/gemini.js';
 import { handleMsgDelete } from './commands/msgDelete.js';
 import { handleCommandProdia } from './commands/prodia.js';
+import { handleCommandProdiaImagem } from './commands/prodiaImagem.js';
 
 config();
 
@@ -44,6 +45,10 @@ discordClient.on('messageCreate', async (message) => {
 
     if (message.channel.name.toLowerCase() === "image-ai" && args[0] === "!prodia") {
         await handleCommandProdia(message, prodiaAI);
+    }
+
+    if (message.channel.name.toLowerCase() === "image-ai" && args[0] === "!prodiaUp") {
+        await handleCommandProdiaImagem(message, prodiaAI);
     }
 });
 

@@ -2,8 +2,10 @@ export async function handleCommandProdia(message, prodiaAI) {
     const pegaPergunta = message.content;
     let prompt = pegaPergunta.substring(pegaPergunta.indexOf(" ") + 1);
   
-    const negativePrompt = "blurry, bad quality";
+    const negativePrompt = "blurry, max quality";
     const model = "absolutereality_v181.safetensors [3d9d4d2b]";
+    //const model = `{,"prompt","model":"absolutereality_v181.safetensors [3d9d4d2b]","style_preset":"photographic","cfg_scale":7,"seed":-1,"upscale":true,"sampler":"DPM++ 2M Karras","width":512,"height":512}`
+    
 
     try {
         const generatingMessage = await message.channel.send("Gerando imagem...");
