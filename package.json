@@ -14,7 +14,7 @@
     "axios": "^1.7.1",
     "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",
-    "prodia": "^0.3.0",
-    "rsnchat": "^4.0.0"
+    "firebase": "^10.12.1",
+    "prodia": "^0.3.0"
   }
 }
