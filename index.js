@@ -1,24 +1,47 @@
-import { Client, GatewayIntentBits } from "discord.js";
-import { handleReady } from './events/ready.js';
-import { handleMessageCreate } from './events/messageCreate.js';
+const { Client, Events, GatewayIntentBits, Collection } = require('discord.js')
+const fs = require("node:fs")
+const path = require("node:path")
 
+const dotenv = require('dotenv')
+dotenv.config()
+const { TOKEN } = process.env
 
-const discordClient = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildMessageTyping,
-        GatewayIntentBits.DirectMessages,
-        GatewayIntentBits.DirectMessageReactions,
-        GatewayIntentBits.DirectMessageTyping
-    ]
+const commandsPath = path.join(__dirname, "commands")
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"))
+
+const client = new Client({ intents: [GatewayIntentBits.Guilds] })
+client.commands = new Collection()
+
+for (const file of commandFiles){
+    const filePath = path.join(commandsPath, file)
+    const command = require(filePath)
+    if ("data" in command && "execute" in command) {
+        client.commands.set(command.data.name, command)
+    } else  {
+        console.log(`Esse comando em ${filePath} está com "data" ou "execute ausentes"`)
+    } 
+}
+
+client.once(Events.ClientReady, c => {
+	console.log(`O bot está online como ${c.user.tag}`)
 });
 
-discordClient.once('ready', () => handleReady(discordClient));
-discordClient.on('messageCreate', handleMessageCreate);
-//discordClient.on('interaction', embedCard);
+client.on(Events.InteractionCreate, async interaction =>{
+    if (!interaction.isChatInputCommand()) return
 
-discordClient.login(process.env.TOKEN_BOT).catch(console.error);
+    const command = interaction.client.commands.get(interaction.commandName)
+    if (!command) {
+        console.error("Comando não encontrado")
+        return
+    }
+    try {
+        await command.execute(interaction)
+		console.log(interaction)
+    } 
+    catch (error) {
+        console.error(error)
+        await interaction.reply("Houve um erro ao executar esse comando!")
+    }
+})
+
+client.login(TOKEN)
