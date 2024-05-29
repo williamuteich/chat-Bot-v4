@@ -4,7 +4,7 @@ const path = require("node:path")
 
 const dotenv = require('dotenv')
 dotenv.config()
-const { TOKEN, CLIENT_ID, GUILD_ID } = process.env
+const { TOKEN_BOT, CLIENT_ID, GUILD_ID } = process.env
 
 const commandsPath = path.join(__dirname, "commands")
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"))
@@ -16,7 +16,7 @@ for (const file of commandFiles) {
    commands.push(command.data.toJSON())
 }
 
-const rest = new REST({version: "10"}).setToken(TOKEN);
+const rest = new REST({version: "10"}).setToken(TOKEN_BOT);
 
 (async () => {
     try {

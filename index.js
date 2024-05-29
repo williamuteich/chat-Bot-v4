@@ -4,7 +4,7 @@ const path = require("node:path")
 
 const dotenv = require('dotenv')
 dotenv.config()
-const { TOKEN } = process.env
+const { TOKEN_BOT } = process.env
 
 const commandsPath = path.join(__dirname, "commands")
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"))
@@ -44,4 +44,4 @@ client.on(Events.InteractionCreate, async interaction =>{
     }
 })
 
-client.login(TOKEN)
+client.login(TOKEN_BOT)

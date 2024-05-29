@@ -1,7 +1,8 @@
 import { config } from "dotenv";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createProdia } from 'prodia';
-import { initializeApp } from "firebase/app";
+import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from 'firebase/app';
 
 config();
 
@@ -17,4 +18,7 @@ const firebaseConfig = {
     appId: process.env.FIREBASE_APP_ID
   };
   
-  export const app = initializeApp(firebaseConfig);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  export { app, db };

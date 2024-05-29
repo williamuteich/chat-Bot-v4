@@ -1,10 +1,10 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const genAI = new GoogleGenerativeAI(process.env.TOKEN_GEMINI);
 
 module.exports = {
-    data: new SlashCommandBuilder() 
+    data: new SlashCommandBuilder()
         .setName('gemini')
         .setDescription('Use o modelo Gemini para gerar uma resposta.')
         .addStringOption(option => 
@@ -12,39 +12,38 @@ module.exports = {
                 .setDescription('A pergunta ou prompt para o modelo Gemini.')
                 .setRequired(true)
         ),
-        
+
     async execute(interaction) {
         try {
-            // Verificar se a interação é do tipo ChatInputCommandInteraction
-            if (interaction.isCommand()) {
-                const prompt = interaction.options.getString('prompt');
-                
-                const model = await genAI.getGenerativeModel({ model: "gemini-pro" });
-                const result = await model.generateContent(prompt);
-                const response = await result.response;
-                const text = await response.text();
+            const prompt = interaction.options.getString('prompt');
 
-                // Verificar se a interação ainda é válida
-                if (interaction.replied || !interaction.channel || !interaction.guild) {
-                    console.log("A interação não é mais válida. Ignorando resposta.");
-                    return;
-                }
+            await interaction.deferReply({ ephemeral: true });
 
-                // Dividindo a mensagem em partes de até 1999 caracteres
-                const chunks = [];
-                const chunkSize = 1999;
-                for (let i = 0; i < text.length; i += chunkSize) {
-                    chunks.push(text.substring(i, i + chunkSize));
-                }
+            const model = await genAI.getGenerativeModel({ model: 'gemini-pro' });
+            const result = await model.generateContent(prompt);
+            const response = result.response;
+            const text = response.text();
 
-                // Enviando as partes da mensagem separadamente
-                for (const chunk of chunks) {
-                    await interaction.reply(chunk);
-                }
+            const maxLength = 1999;
+            const textParts = [];
+
+            for (let i = 0; i < text.length; i += maxLength) {
+                textParts.push(text.substring(i, i + maxLength));
             }
+
+            await interaction.followUp({ content: textParts[0], ephemeral: true });
+
+            for (let i = 1; i < textParts.length; i++) {
+                await interaction.followUp({ content: textParts[i], ephemeral: true });
+            }
+
         } catch (error) {
-            console.error("Erro ao executar o comando Gemini:", error);
-            await interaction.reply("Ocorreu um erro ao gerar a resposta. Tente novamente mais tarde.");
+            console.error('Erro ao executar o comando Gemini:', error);
+            if (!interaction.replied) {
+                await interaction.reply({ content: 'Ocorreu um erro ao tentar obter a resposta.', ephemeral: true });
+            } else {
+                await interaction.followUp({ content: 'Ocorreu um erro ao tentar obter a resposta.', ephemeral: true });
+            }
         }
-    }
+    },
 };
