@@ -11,7 +11,7 @@ module.exports = {
         ),
 
     async execute(interaction) {
-        let deletedCount = 0; // Definir aqui para acessibilidade
+        let deletedCount = 0;
 
         try {
             const channel = interaction.channel;
@@ -33,7 +33,7 @@ module.exports = {
                 }
             }
 
-            await interaction.reply(`Foram deletadas ${deletedCount} mensagens.`);
+            await interaction.reply(`Foram deletadas ${deletedCount} mensagens do canal.`);
 
         } catch (error) {
             console.log("Erro ao executar o comando msgdelete:", error);
