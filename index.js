@@ -36,12 +36,35 @@ client.on(Events.InteractionCreate, async interaction =>{
     }
     try {
         await command.execute(interaction)
-		console.log(interaction)
     } 
     catch (error) {
         console.error(error)
         await interaction.reply("Houve um erro ao executar esse comando!")
     }
 })
+
+client.on(Events.InteractionCreate, interaction => {
+
+    if (!interaction.isModalSubmit()) return;
+    if (interaction.isModalSubmit()) {
+        const componente = interaction.components;
+        const values = {};
+
+        componente.forEach(pegaValue => {
+           pegaValue.components.forEach(pega => {
+               values[pega.customId] = pega.value;
+           });
+        });
+       
+        interaction.reply(`seus dados são: \n ${values.nomeInput}\n ${values.sobrenomeInput}\n ${values.emailInput}\n ${values.cpfInput}\n ${values.hobbiesInput}`);
+        //preciso fazer a integração com a API do MercadoPago via pix. 
+        //Pegar Qr Code e url gerada para pagamento.
+        //exibir o valor a ser pago e o nome do produto.
+        //Exibir os dados do usuário para confirmação.
+        //aguardar a confirmação de pagamentpo.
+    }
+});
+
+
 
 client.login(TOKEN_BOT)

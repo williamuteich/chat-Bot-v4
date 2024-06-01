@@ -1,10 +1,5 @@
 const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
-const { Payment } = require('@mercadopago/sdk-js');
-const dotenv = require('dotenv');
 
-dotenv.config();
-
-const { TOKEN_MERCADOPAGO, TOKEN_CHAVEPIX } = process.env;
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -18,40 +13,44 @@ module.exports = {
                 .setTitle('Pagamento via PIX');
         
             const nomeInput = new TextInputBuilder()
-                .setCustomId('checkout__payerFirstName')
+                .setCustomId('nomeInput')
                 .setLabel("Qual o seu nome?")
-                .setStyle(TextInputStyle.Short);
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
 
             const sobrenomeInput = new TextInputBuilder()
-                .setCustomId('form-checkout__payerLastName')
+                .setCustomId('sobrenomeInput')
                 .setLabel("Qual o seu sobrenome?")
-                .setStyle(TextInputStyle.Short);
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
             
             const emailInput = new TextInputBuilder()
-                .setCustomId('form-checkout__email')
+                .setCustomId('emailInput')
                 .setLabel('Seu Email?')
-                .setStyle(TextInputStyle.Short);
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
         
             const cpfInput = new TextInputBuilder()
-                .setCustomId('identificationNumber')
+                .setCustomId('cpfInput')
                 .setLabel('CPF')
-                .setStyle(TextInputStyle.Short);
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true);
             
-//
             const hobbiesInput = new TextInputBuilder()
-                .setCustomId('description')
+                .setCustomId('hobbiesInput')
                 .setLabel("Descrição do produto")
                 .setStyle(TextInputStyle.Paragraph);
         
             const primeiroNome = new ActionRowBuilder().addComponents(nomeInput);
             const sobrenome = new ActionRowBuilder().addComponents(sobrenomeInput);
-            const emailUsuario = new ActionRowBuilder().addComponents(emailInput)
-            const cpfUsuario = new ActionRowBuilder().addComponents(cpfInput)
+            const emailUsuario = new ActionRowBuilder().addComponents(emailInput);
+            const cpfUsuario = new ActionRowBuilder().addComponents(cpfInput);
             const secondActionRow = new ActionRowBuilder().addComponents(hobbiesInput);
 
             modal.addComponents(primeiroNome, sobrenome, emailUsuario, cpfUsuario, secondActionRow);
-        
+
             await interaction.showModal(modal);
+            
         } catch (error) {
             console.error('Erro ao iniciar pagamento via PIX:', error);
             await interaction.reply('Ocorreu um erro ao iniciar o pagamento. Por favor, tente novamente mais tarde.');
