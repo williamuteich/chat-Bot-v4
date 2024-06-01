@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.11.1",
+    "@mercadopago/sdk-js": "^0.0.3",
     "axios": "^1.7.1",
     "discord.js": "^14.15.2",
     "dotenv": "^16.4.5",
