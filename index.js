@@ -4,7 +4,12 @@ const path = require("node:path")
 
 const dotenv = require('dotenv')
 dotenv.config()
-const { TOKEN_BOT } = process.env
+const { TOKEN_BOT, TOKEN_MERCADOPAGO } = process.env
+
+const { Payment, MercadoPagoConfig } = require ('mercadopago');
+
+const clientMercadoPago = new MercadoPagoConfig({ accessToken: TOKEN_MERCADOPAGO });
+const payment = new Payment(clientMercadoPago);
 
 const commandsPath = path.join(__dirname, "commands")
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"))
@@ -43,28 +48,46 @@ client.on(Events.InteractionCreate, async interaction =>{
     }
 })
 
-client.on(Events.InteractionCreate, interaction => {
-
+client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isModalSubmit()) return;
-    if (interaction.isModalSubmit()) {
-        const componente = interaction.components;
-        const values = {};
+    const componente = interaction.components;
+    const values = {};
 
-        componente.forEach(pegaValue => {
-           pegaValue.components.forEach(pega => {
-               values[pega.customId] = pega.value;
-           });
+    componente.forEach(pegaValue => {
+        pegaValue.components.forEach(pega => {
+            values[pega.customId] = pega.value;
         });
-       
-        interaction.reply(`seus dados são: \n ${values.nomeInput}\n ${values.sobrenomeInput}\n ${values.emailInput}\n ${values.cpfInput}\n ${values.hobbiesInput}`);
-        //preciso fazer a integração com a API do MercadoPago via pix. 
-        //Pegar Qr Code e url gerada para pagamento.
-        //exibir o valor a ser pago e o nome do produto.
-        //Exibir os dados do usuário para confirmação.
-        //aguardar a confirmação de pagamentpo.
-    }
-});
+    });
 
+    // Salvar os dados no banco, se houver um CPF válido, email válido e os dados não forem existentes, gravará no banco.
+    await interaction.reply(`Os dados foram enviados`);
+
+    // Fazer a integração com a API do MercadoPago via PIX.
+    // Pegar Qr Code e URL gerada para pagamento.
+    // Exibir o valor a ser pago e o nome do produto.
+    // Exibir os dados do usuário para confirmação.
+    // Aguardar a confirmação de pagamento.
+
+    try {
+        payment.create({
+            body: { 
+                transaction_amount: 58,
+                description: "descrição qualquer",
+                payment_method_id: "pix",
+                    payer: {
+                    email: "williamuteich@gmail.com",
+                    identification: {
+                type: "CPF",
+                number: "86984292034"
+            }}},
+            requestOptions: { idempotencyKey: '1123333467788122356765' }
+        })
+        .then((result) => console.log(result))
+        .catch((error) => console.log(error));   
+    
+} catch (error) {
+    console.log(error)
+}});
 
 
 client.login(TOKEN_BOT)
