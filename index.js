@@ -1,14 +1,15 @@
-const { Client, Events, GatewayIntentBits, Collection } = require('discord.js')
+const { Client, Events, GatewayIntentBits, Collection } = require('discord.js');
+const { getAllUsers  } = require('./databaseQuery/users');
 const fs = require("node:fs")
 const path = require("node:path")
 
 const dotenv = require('dotenv')
 dotenv.config()
-const { TOKEN_BOT, TOKEN_MERCADOPAGO } = process.env
+const { TOKEN_BOT, TOKEN_MERCADOPAGO, TOKEN_CHAVEPIX } = process.env
 
 const { Payment, MercadoPagoConfig } = require ('mercadopago');
 
-const clientMercadoPago = new MercadoPagoConfig({ accessToken: TOKEN_MERCADOPAGO });
+const clientMercadoPago = new MercadoPagoConfig({ accessToken: TOKEN_MERCADOPAGO, options: { timeout: 5000, idempotencyKey: 'abc' } });
 const payment = new Payment(clientMercadoPago);
 
 const commandsPath = path.join(__dirname, "commands")
@@ -40,7 +41,12 @@ client.on(Events.InteractionCreate, async interaction =>{
         return
     }
     try {
-        await command.execute(interaction)
+        const users = await getAllUsers();
+        
+        console.log(users)
+        await command.execute(interaction);
+        
+       
     } 
     catch (error) {
         console.error(error)
@@ -48,46 +54,63 @@ client.on(Events.InteractionCreate, async interaction =>{
     }
 })
 
-client.on(Events.InteractionCreate, async interaction => {
-    if (!interaction.isModalSubmit()) return;
-    const componente = interaction.components;
-    const values = {};
-
-    componente.forEach(pegaValue => {
-        pegaValue.components.forEach(pega => {
-            values[pega.customId] = pega.value;
-        });
-    });
-
-    // Salvar os dados no banco, se houver um CPF válido, email válido e os dados não forem existentes, gravará no banco.
-    await interaction.reply(`Os dados foram enviados`);
-
-    // Fazer a integração com a API do MercadoPago via PIX.
-    // Pegar Qr Code e URL gerada para pagamento.
-    // Exibir o valor a ser pago e o nome do produto.
-    // Exibir os dados do usuário para confirmação.
-    // Aguardar a confirmação de pagamento.
-
-    try {
-        payment.create({
-            body: { 
-                transaction_amount: 58,
-                description: "descrição qualquer",
-                payment_method_id: "pix",
-                    payer: {
-                    email: "williamuteich@gmail.com",
-                    identification: {
-                type: "CPF",
-                number: "86984292034"
-            }}},
-            requestOptions: { idempotencyKey: '1123333467788122356765' }
-        })
-        .then((result) => console.log(result))
-        .catch((error) => console.log(error));   
-    
-} catch (error) {
-    console.log(error)
-}});
-
+//client.on(Events.InteractionCreate, async interaction => {
+//    if (!interaction.isModalSubmit()) return;
+//    const componente = interaction.components;
+//    const values = {};
+//
+//    componente.forEach(pegaValue => {
+//        pegaValue.components.forEach(pega => {
+//            values[pega.customId] = pega.value;
+//        });
+//    });
+//
+//    await interaction.reply(`Os dados foram enviados`);
+//
+//    try {
+//
+//        //qr_code: É o copia e cola
+//        //qr_code_base64: É o QR code imagem.
+//        //ticket_url: direciona para o mercado pago para efetuar o pagamento.
+//        const paymentData = {
+//            transaction_amount: 0.01,
+//            description: 'Payment for product',
+//            payment_method_id: 'pix',
+//            token: TOKEN_CHAVEPIX,
+//            payer: {
+//                email: 'willianuteich@hotmail.com',
+//                first_name: 'william',
+//                last_name: 'Uteich',
+//                identification: {
+//                    type: 'CPF',
+//                    number: '86984292034'
+//                }
+//            }
+//        };
+//        
+//        //console.log("Dados do pagamento:", paymentData);
+//        
+//        payment.create({
+//            body: paymentData,
+//            requestOptions: { idempotencyKey: '7777asd7788qw7eqwe' } //aqui eu preciso passar um ID quando for criar um pagamento, para depois conseguir consultar pela API o status do pagamento.
+//        })
+//        .then((result) => console.log(result))
+//        .catch((error) => console.log(error));
+//        
+//    
+//    } catch (error) {
+//        console.log(error)
+//    }
+//
+//    //payment.get({
+//    //    "id": '79694095418',
+//    //}).then(response => {
+//    //    console.log("Resultado da consulta de pagamento:", response);
+//    //}).catch(error => {
+//    //    console.log("Erro ao obter o pagamento:", error);
+//    //});
+//
+//});
+//
 
 client.login(TOKEN_BOT)
