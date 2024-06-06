@@ -3,7 +3,6 @@ const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, Act
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('pix')
         .setDescription('Inicia o processo de pagamento via PIX.'),
 
         async execute(interaction) {

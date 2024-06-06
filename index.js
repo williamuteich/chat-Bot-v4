@@ -1,5 +1,6 @@
 const { Client, Events, GatewayIntentBits, Collection } = require('discord.js');
-const { getAllUsers  } = require('./databaseQuery/users');
+const { buildModal } = require('./modalBuilder.js');
+const isUserRegistered = require('./Querys/consultaUsers');
 const fs = require("node:fs")
 const path = require("node:path")
 
@@ -40,13 +41,22 @@ client.on(Events.InteractionCreate, async interaction =>{
         console.error("Comando não encontrado")
         return
     }
-    try {
-        const users = await getAllUsers();
+    try {    
+        const userDiscord = interaction.member.user.id;
         
-        console.log(users)
+        const isRegistered = await isUserRegistered(userDiscord);
+        
+        if (!isRegistered) {
+            const modal = buildModal(userDiscord); 
+           
+            await interaction.showModal(modal); 
+           
+            //await interaction.reply("Você ainda não está registrado, por favor preencha o formulário para continuar.")
+           
+            return;
+        }
+
         await command.execute(interaction);
-        
-       
     } 
     catch (error) {
         console.error(error)
