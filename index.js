@@ -1,6 +1,7 @@
-const { Client, Events, GatewayIntentBits, Collection } = require('discord.js');
-const { buildModal } = require('./modalBuilder.js');
+const { Client, Events, GatewayIntentBits, Collection, EmbedBuilder  } = require('discord.js');
+//const { buildModal } = require('./modalBuilder.js');
 const isUserRegistered = require('./Querys/consultaUsers');
+
 const fs = require("node:fs")
 const path = require("node:path")
 
@@ -33,36 +34,47 @@ client.once(Events.ClientReady, c => {
 	console.log(`O bot está online como ${c.user.tag}`)
 });
 
-client.on(Events.InteractionCreate, async interaction =>{
-    if (!interaction.isChatInputCommand()) return
-
-    const command = interaction.client.commands.get(interaction.commandName)
-    if (!command) {
-        console.error("Comando não encontrado")
-        return
-    }
-    try {    
-        const userDiscord = interaction.member.user.id;
-        
+client.on('interactionCreate', async (interaction) => {
+    if (interaction.isCommand()) {
+        const userDiscord = interaction.user.id;
         const isRegistered = await isUserRegistered(userDiscord);
-        
-        if (!isRegistered) {
-            const modal = buildModal(userDiscord); 
-           
-            await interaction.showModal(modal); 
-           
-            //await interaction.reply("Você ainda não está registrado, por favor preencha o formulário para continuar.")
-           
+
+        if (!isRegistered && interaction.commandName !== 'register') {
+            const exampleEmbed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle('Registre-se!')
+                .setDescription('Cadastre-se para poder utilizar os comandos do bot Scripto!')
+                .setThumbnail('https://cdnb.artstation.com/p/assets/images/images/045/972/517/large/flynn-coltman-bantha-nft.jpg?1643982096')
+                .addFields({ name: 'Para se registrar, Digite o comando:', value: '/register', inline: true })
+                .setTimestamp();
+
+            await interaction.reply({ embeds: [exampleEmbed], ephemeral: true });
             return;
         }
 
-        await command.execute(interaction);
-    } 
-    catch (error) {
-        console.error(error)
-        await interaction.reply("Houve um erro ao executar esse comando!")
+        const command = client.commands.get(interaction.commandName);
+
+        if (command) {
+            try {
+                await command.execute(interaction);
+            } catch (error) {
+                console.error(error);
+                await interaction.reply({ content: 'Houve um erro ao executar esse comando!', ephemeral: true });
+            }
+        }
+    } else if (interaction.isModalSubmit()) {
+        if (interaction.customId === 'ModalRegister') {
+
+            const valueModal = interaction.fields.fields.map(field => [field.customId, field.value, ]);
+            const data = Object.fromEntries(valueModal);
+
+            console.log("pegou as porra aqui", data + interaction.member.user.id)
+            // Aqui processar os dados e registrar o usuário no banco de dados
+            // Depois de registrar, responder ao usuário que os dados foram registrados com sucesso
+            await interaction.reply({ content: 'Dados Registrados com Sucesso!', ephemeral: true });
+        }
     }
-})
+});
 
 //client.on(Events.InteractionCreate, async interaction => {
 //    if (!interaction.isModalSubmit()) return;
