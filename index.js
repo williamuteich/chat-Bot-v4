@@ -1,6 +1,7 @@
 const { Client, Events, GatewayIntentBits, Collection, EmbedBuilder  } = require('discord.js');
 //const { buildModal } = require('./modalBuilder.js');
 const isUserRegistered = require('./Querys/consultaUsers');
+const salvarRegistros = require('./Querys/saveUsers');
 
 const fs = require("node:fs")
 const path = require("node:path")
@@ -64,14 +65,39 @@ client.on('interactionCreate', async (interaction) => {
         }
     } else if (interaction.isModalSubmit()) {
         if (interaction.customId === 'ModalRegister') {
-
-            const valueModal = interaction.fields.fields.map(field => [field.customId, field.value, ]);
+            const valueModal = interaction.fields.fields.map(field => [field.customId, field.value]);
             const data = Object.fromEntries(valueModal);
-
-            console.log("pegou as porra aqui", data + interaction.member.user.id)
-            // Aqui processar os dados e registrar o usuário no banco de dados
-            // Depois de registrar, responder ao usuário que os dados foram registrados com sucesso
-            await interaction.reply({ content: 'Dados Registrados com Sucesso!', ephemeral: true });
+    
+            data.userDiscord = interaction.member.user.id;
+            data.serverIdDiscord = interaction.guild.id; 
+            data.serverNameDiscord = interaction.guild.name; 
+    
+            //console.log("Pegou os dados aqui:", data);
+    
+            const { nomeInput, sobrenomeInput, emailInput, cpfInput, phoneInput } = data;
+            if (!nomeInput || !sobrenomeInput || !emailInput || !cpfInput || !phoneInput) {
+                await interaction.reply({ content: 'Todos os campos são obrigatórios.', ephemeral: true });
+                return;
+            }
+    
+            const result = await salvarRegistros({
+                userDiscord: data.userDiscord,
+                serverIdDiscord: data.serverIdDiscord,
+                serverNameDiscord: data.serverNameDiscord,
+                email: emailInput,
+                name: nomeInput,
+                last_name: sobrenomeInput,
+                cpf: cpfInput,
+                phone: phoneInput
+            });
+    
+            if (result.success) {
+                await interaction.reply({ content: 'Dados Registrados com Sucesso!', ephemeral: true });
+            } else if (result.message === "Usuário já registrado.") {
+                await interaction.reply({ content: 'Usuário já registrado.', ephemeral: true });
+            } else {
+                await interaction.reply({ content: 'Erro ao registrar os dados.', ephemeral: true });
+            }
         }
     }
 });
