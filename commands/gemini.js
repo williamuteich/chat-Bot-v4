@@ -19,7 +19,7 @@ module.exports = {
 
             await interaction.deferReply({ ephemeral: true });
 
-            const model = await genAI.getGenerativeModel({ model: 'gemini-pro' });
+            const model = await genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
             const result = await model.generateContent(prompt);
             const response = result.response;
             const text = response.text();

@@ -1,29 +1,27 @@
-const mysql = require('mysql2/promise');
-const dotenv = require('dotenv');
-
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const dotenv = require('dotenv')
 dotenv.config()
 
-const { HOST_DATABASE, USER_DATABASE, PASSWORD_DATABASE, DATABASE_NAME } = process.env;
+const { HOSTDATABASE } = process.env
 
-
-async function dbConnection() {
-  if (global.connection && global.connection.state !== 'disconnected') {
-    console.log("Reutilizando Conexão")
-    return global.connection;
+const uri =HOSTDATABASE;
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
   }
+});
 
-  const connection = await mysql.createConnection({
-    host: "localhost",
-    user: "usuario",
-    password: "40028922",
-    database: "botDiscordV14-DB"
-  });
-  
-  console.log("conectou no MySQL")
-  global.connection = connection;
-  return connection;
+async function run() {
+  try {
+    await client.connect();
+    console.log("Conectou ao banco de dados MongoDB!");
+  } catch (error) {
+    console.error("Erro ao conectar ao banco de dados MongoDB:", error);
+  }
 }
 
-dbConnection();
+run().catch(console.dir);
 
-module.exports = dbConnection;
+module.exports = { client };

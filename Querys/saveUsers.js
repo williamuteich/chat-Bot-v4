@@ -1,67 +1,39 @@
-const dbConnection = require('../database/discordDatabase');
+const dbConnection = require('../database/discordDatabase').client;
 
 async function salvarRegistros({ userDiscord, serverIdDiscord, serverNameDiscord, email, name, last_name, cpf, phone }) {
-    const conn = await dbConnection();
+    const createdAt = new Date();
+    const session = dbConnection.startSession();
+    session.startTransaction();
+
     try {
-        await conn.beginTransaction();
+        const db = dbConnection.db();
+        const userCollection = db.collection('users');
+        const serversCollection = db.collection('servers');
+        const userServersCollection = db.collection('user_servers');
 
-        // Inserir usuário na tabela users
-        const [userResult] = await conn.query(
-            `INSERT INTO users (discord_user_id, email, name, last_name, cpf, phone_number) VALUES (?, ?, ?, ?, ?, ?)`,
-            [userDiscord, email, name, last_name, cpf, phone]
+        await userCollection.insertOne(
+            { discordUserID: userDiscord, email, name, last_name, cpf, phone, active: true, createdAt: createdAt, updatedAt: createdAt},
+            { session }
+        );
+        await serversCollection.insertOne(
+            { discordServerID: serverIdDiscord, serverName: serverNameDiscord },
+            { session }
+        );
+        await userServersCollection.insertOne(
+            { userId: userDiscord, serverId: serverIdDiscord, credits: 10 },
+            { session }
         );
 
-        if (userResult.affectedRows === 0) {
-            await conn.rollback();
-            return { success: false, message: "Erro ao inserir usuário." };
-        }
+        await session.commitTransaction();
+        session.endSession();
 
-        // Obter server_id da tabela servers
-        let [serverResult] = await conn.query(
-            `SELECT id FROM servers WHERE discord_server_id = ?`,
-            [serverIdDiscord]
-        );
-
-        let serverId;
-        if (serverResult.length === 0) {
-            // Se o servidor não existir, inseri-lo
-            const [insertServerResult] = await conn.query(
-                `INSERT INTO servers (discord_server_id, server_name) VALUES (?, ?)`,
-                [serverIdDiscord, serverNameDiscord]
-            );
-            if (insertServerResult.affectedRows === 0) {
-                await conn.rollback();
-                return { success: false, message: "Erro ao inserir servidor." };
-            }
-            serverId = insertServerResult.insertId;
-        } else {
-            serverId = serverResult[0].id;
-        }
-
-        // Inserir associação na tabela user_servers
-        const [userServerResult] = await conn.query(
-            `INSERT INTO user_servers (user_id, server_id, credits) VALUES (?, ?, ?)`,
-            [userResult.insertId, serverId, 5]
-        );
-
-        if (userServerResult.affectedRows === 0) {
-            await conn.rollback();
-            return { success: false, message: "Erro ao associar usuário ao servidor." };
-        }
-
-        await conn.commit();
-        console.log("Usuário inserido com sucesso e associado ao servidor!");
-        return { success: true, message: "Usuário inserido com sucesso!" };
-
+        return { success: true, message: "Usuário, servidor e associação criados com sucesso." };
     } catch (error) {
-        await conn.rollback();
-        if (error.code === 'ER_DUP_ENTRY') {
-            console.error('Usuário já registrado:', error);
-            return { success: false, message: "Usuário já registrado." };
-        } else {
-            console.error('Erro ao inserir usuário:', error);
-            return { success: false, message: "Erro ao inserir usuário." };
-        }
+        await session.abortTransaction();
+        session.endSession();
+
+        console.error('Erro ao criar usuário, servidor e associação:', error);
+        return { success: false, message: "Erro ao criar usuário, servidor e associação." };
     }
 }
 

@@ -1,19 +1,14 @@
 const { Client, Events, GatewayIntentBits, Collection, EmbedBuilder  } = require('discord.js');
-//const { buildModal } = require('./modalBuilder.js');
 const isUserRegistered = require('./Querys/consultaUsers');
 const salvarRegistros = require('./Querys/saveUsers');
+const { getUserCredits, updateUserCredits } = require('./credits');
 
 const fs = require("node:fs")
 const path = require("node:path")
 
 const dotenv = require('dotenv')
 dotenv.config()
-const { TOKEN_BOT, TOKEN_MERCADOPAGO, TOKEN_CHAVEPIX } = process.env
-
-const { Payment, MercadoPagoConfig } = require ('mercadopago');
-
-const clientMercadoPago = new MercadoPagoConfig({ accessToken: TOKEN_MERCADOPAGO, options: { timeout: 5000, idempotencyKey: 'abc' } });
-const payment = new Payment(clientMercadoPago);
+const { TOKEN_BOT} = process.env
 
 const commandsPath = path.join(__dirname, "commands")
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"))
@@ -38,7 +33,9 @@ client.once(Events.ClientReady, c => {
 client.on('interactionCreate', async (interaction) => {
     if (interaction.isCommand()) {
         const userDiscord = interaction.user.id;
-        const isRegistered = await isUserRegistered(userDiscord);
+        const userServerDiscordID = interaction.guild.id;
+        const serverName = interaction.guild.name;
+        const isRegistered = await isUserRegistered(userDiscord, userServerDiscordID, serverName);
 
         if (!isRegistered && interaction.commandName !== 'register') {
             const exampleEmbed = new EmbedBuilder()
@@ -53,11 +50,32 @@ client.on('interactionCreate', async (interaction) => {
             return;
         }
 
+        if (isRegistered && interaction.commandName === 'register') {
+            await interaction.reply("Você já está cadastrado.");
+            return;
+        }
+
         const command = client.commands.get(interaction.commandName);
 
         if (command) {
             try {
-                await command.execute(interaction);
+                if (interaction.commandName === 'gemini' || interaction.commandName === 'prodia') {
+                    const userCredits = await getUserCredits(userDiscord, userServerDiscordID);
+                    
+                    if (userCredits > 0) {
+                        await command.execute(interaction);
+                        const updateResult = await updateUserCredits(userDiscord, userServerDiscordID, userCredits - 1);
+                       if (updateResult) {
+                           await interaction.followUp(`Você tem ${userCredits - 1} créditos restantes.`);
+                       } else {
+                           await interaction.followUp('Erro ao atualizar seus créditos. Por favor, tente novamente.');
+                       }
+                    } else {
+                        await interaction.reply({ content: 'Você não tem créditos suficientes para executar este comando.', ephemeral: true });
+                    }
+                } else {
+                    await command.execute(interaction);
+                }
             } catch (error) {
                 console.error(error);
                 await interaction.reply({ content: 'Houve um erro ao executar esse comando!', ephemeral: true });
@@ -65,14 +83,21 @@ client.on('interactionCreate', async (interaction) => {
         }
     } else if (interaction.isModalSubmit()) {
         if (interaction.customId === 'ModalRegister') {
+
+            const userDiscord = interaction.member.user.id;
+            const isRegistered = await isUserRegistered(userDiscord);
+
+            if (isRegistered) {
+                await interaction.reply("Usuário já registrado em nosso Banco de Dados.");
+                return;
+            }
+
             const valueModal = interaction.fields.fields.map(field => [field.customId, field.value]);
             const data = Object.fromEntries(valueModal);
     
-            data.userDiscord = interaction.member.user.id;
+            data.userDiscord = userDiscord;
             data.serverIdDiscord = interaction.guild.id; 
             data.serverNameDiscord = interaction.guild.name; 
-    
-            //console.log("Pegou os dados aqui:", data);
     
             const { nomeInput, sobrenomeInput, emailInput, cpfInput, phoneInput } = data;
             if (!nomeInput || !sobrenomeInput || !emailInput || !cpfInput || !phoneInput) {
@@ -103,62 +128,18 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 //client.on(Events.InteractionCreate, async interaction => {
-//    if (!interaction.isModalSubmit()) return;
-//    const componente = interaction.components;
-//    const values = {};
-//
-//    componente.forEach(pegaValue => {
-//        pegaValue.components.forEach(pega => {
-//            values[pega.customId] = pega.value;
-//        });
-//    });
-//
-//    await interaction.reply(`Os dados foram enviados`);
-//
-//    try {
-//
-//        //qr_code: É o copia e cola
-//        //qr_code_base64: É o QR code imagem.
-//        //ticket_url: direciona para o mercado pago para efetuar o pagamento.
-//        const paymentData = {
-//            transaction_amount: 0.01,
-//            description: 'Payment for product',
-//            payment_method_id: 'pix',
-//            token: TOKEN_CHAVEPIX,
-//            payer: {
-//                email: 'willianuteich@hotmail.com',
-//                first_name: 'william',
-//                last_name: 'Uteich',
-//                identification: {
-//                    type: 'CPF',
-//                    number: '86984292034'
-//                }
-//            }
-//        };
-//        
-//        //console.log("Dados do pagamento:", paymentData);
-//        
-//        payment.create({
-//            body: paymentData,
-//            requestOptions: { idempotencyKey: '7777asd7788qw7eqwe' } //aqui eu preciso passar um ID quando for criar um pagamento, para depois conseguir consultar pela API o status do pagamento.
-//        })
-//        .then((result) => console.log(result))
-//        .catch((error) => console.log(error));
-//        
-//    
-//    } catch (error) {
-//        console.log(error)
-//    }
-//
-//    //payment.get({
-//    //    "id": '79694095418',
-//    //}).then(response => {
-//    //    console.log("Resultado da consulta de pagamento:", response);
-//    //}).catch(error => {
-//    //    console.log("Erro ao obter o pagamento:", error);
-//    //});
-//
+
+
+    //fazer requisição do status do pagamento aqui.
+    //payment.get({
+    //    "id": '7777asd7788qw7eqwe',
+    //}).then(response => {
+    //    console.log("Resultado da consulta de pagamento:", response);
+    //}).catch(error => {
+    //    console.log("Erro ao obter o pagamento:", error);
+    //});
+
 //});
-//
+
 
 client.login(TOKEN_BOT)
