@@ -2,13 +2,17 @@ const { Client, Events, GatewayIntentBits, Collection, EmbedBuilder  } = require
 const isUserRegistered = require('./Querys/consultaUsers');
 const salvarRegistros = require('./Querys/saveUsers');
 const { getUserCredits, updateUserCredits } = require('./credits');
+const { Payment, MercadoPagoConfig } = require('mercadopago');
 
 const fs = require("node:fs")
 const path = require("node:path")
 
 const dotenv = require('dotenv')
 dotenv.config()
-const { TOKEN_BOT} = process.env
+const { TOKEN_BOT, TOKEN_MERCADOPAGO} = process.env
+
+const clientMercadoPago = new MercadoPagoConfig({ accessToken: TOKEN_MERCADOPAGO, options: { timeout: 5000 } });
+const payment = new Payment(clientMercadoPago);
 
 const commandsPath = path.join(__dirname, "commands")
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"))
@@ -132,7 +136,7 @@ client.on('interactionCreate', async (interaction) => {
 
     //fazer requisição do status do pagamento aqui.
     //payment.get({
-    //    "id": '7777asd7788qw7eqwe',
+    //    "id": '80741382976',
     //}).then(response => {
     //    console.log("Resultado da consulta de pagamento:", response);
     //}).catch(error => {

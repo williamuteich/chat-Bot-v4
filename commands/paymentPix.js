@@ -1,5 +1,8 @@
+const { v4: uuidv4 } = require('uuid');
 const dbConnection = require('../database/discordDatabase').client;
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, MessageEmbed, AttachmentBuilder } = require('discord.js');
+
+const { format, addMinutes } = require('date-fns');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -16,17 +19,28 @@ module.exports = {
     
     async execute(interaction) {
         try {
-            const userDiscordID = interaction.user.id; 
+            const userDiscordID = interaction.user.id;
+            const serverId = interaction.guild.id;
             const db = dbConnection.db();
             const usersCollection = db.collection('users');
-            
+            const paymentsCollection = db.collection('gatewayPayments');
+
             const user = await usersCollection.findOne({ discordUserID: userDiscordID });
 
-            console.log("Resultado do usuário:", user);
+            //if (!user) {
+            //    await interaction.reply("Usuário não encontrado no banco de dados.");
+            //    return;
+            //}
+
+            const idempotencyKey = uuidv4();
+
+           const createdAtFormatted = format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone: 'America/Sao_Paulo' });
+           const dateExpiration = format(addMinutes(new Date(createdAtFormatted), 6), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone: 'America/Sao_Paulo' });
 
             const paymentData = {
                 transaction_amount: 0.01,
                 description: 'Payment for product',
+                date_of_expiration: dateExpiration,
                 payment_method_id: 'pix',
                 token: TOKEN_CHAVEPIX,
                 payer: {
@@ -39,17 +53,42 @@ module.exports = {
                     }
                 }
             };
-            
-            //console.log("Dados do pagamento:", paymentData);
-            
+
             const result = await payment.create({
                 body: paymentData,
-                requestOptions: { idempotencyKey: '777888999223' }
+                requestOptions: { idempotencyKey }
             });
 
-            //console.log("Resultado do pagamento:", result.point_of_interaction.transaction_data.qr_code);
-            //console.log("Resultado do pagamento:", result.point_of_interaction.transaction_data.ticket_url);
-            //await interaction.reply(`Resultado do pagamento COPIA E COLA: ${result.point_of_interaction.transaction_data.qr_code}\n URL para pagamento: ${result.point_of_interaction.transaction_data.ticket_url}`);
+            const paymentRecord = {
+                status: 'pending',
+                paymentId: result.id,
+                transactionAmount: paymentData.transaction_amount,
+                qrCode: result.point_of_interaction.transaction_data.qr_code,
+                qrCode64: result.point_of_interaction.transaction_data.qr_code_base64,
+                copyPasteCode: result.point_of_interaction.transaction_data.ticket_url,
+                userDiscordId: userDiscordID,
+                serverId: serverId,
+                idempotencyKey, 
+                createdAt: createdAtFormatted
+            };
+
+            await paymentsCollection.insertOne(paymentRecord);
+            const imagemBase64 = `data:image/gif;base64,${result.point_of_interaction.transaction_data.qr_code_base64}`;
+
+            const imageBuffer = Buffer.from(imagemBase64.split(",")[1], 'base64');
+            const attachments = new AttachmentBuilder(imageBuffer, 'qrCode.png');
+            
+            await interaction.reply({
+                content: `**Copia e Cola:**\n\`\`\`${result.point_of_interaction.transaction_data.qr_code}\n\`\`\``,
+                files: [attachments],
+                ephemeral: true,
+                components: [],
+            });
+            
+            await interaction.followUp({
+                content: "Link para pagamento: " + result.point_of_interaction.transaction_data.ticket_url,
+                ephemeral: true,
+            });
         } catch (error) {
             console.error("Erro ao executar o pagamento:", error);
             await interaction.reply("Erro ao executar o pagamento: " + error.message);
