@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const dbConnection = require('../database/discordDatabase').client;
-const { SlashCommandBuilder, EmbedBuilder, MessageEmbed, AttachmentBuilder } = require('discord.js');
+const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
 
 const { format, addMinutes } = require('date-fns');
 const dotenv = require('dotenv');
@@ -27,18 +27,13 @@ module.exports = {
 
             const user = await usersCollection.findOne({ discordUserID: userDiscordID });
 
-            //if (!user) {
-            //    await interaction.reply("Usuário não encontrado no banco de dados.");
-            //    return;
-            //}
-
             const idempotencyKey = uuidv4();
 
            const createdAtFormatted = format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone: 'America/Sao_Paulo' });
            const dateExpiration = format(addMinutes(new Date(createdAtFormatted), 6), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx", { timeZone: 'America/Sao_Paulo' });
 
             const paymentData = {
-                transaction_amount: 0.01,
+                transaction_amount: 1.00,
                 description: 'Payment for product',
                 date_of_expiration: dateExpiration,
                 payment_method_id: 'pix',

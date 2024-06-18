@@ -3,6 +3,7 @@ const isUserRegistered = require('./Querys/consultaUsers');
 const salvarRegistros = require('./Querys/saveUsers');
 const { getUserCredits, updateUserCredits } = require('./credits');
 const { Payment, MercadoPagoConfig } = require('mercadopago');
+const { pollPayments } = require('./checkAndUpdatePayment');
 
 const fs = require("node:fs")
 const path = require("node:path")
@@ -32,6 +33,7 @@ for (const file of commandFiles){
 
 client.once(Events.ClientReady, c => {
 	console.log(`O bot está online como ${c.user.tag}`)
+    setInterval(() => pollPayments(client), 15000);
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -63,19 +65,32 @@ client.on('interactionCreate', async (interaction) => {
 
         if (command) {
             try {
+                const userDiscordID = interaction.user.id;
+                const serverId = interaction.guild.id;
+        
+                await pollPayments(client);
+        
                 if (interaction.commandName === 'gemini' || interaction.commandName === 'prodia') {
-                    const userCredits = await getUserCredits(userDiscord, userServerDiscordID);
-                    
+                    const userCredits = await getUserCredits(userDiscordID, serverId);
+        
                     if (userCredits > 0) {
                         await command.execute(interaction);
-                        const updateResult = await updateUserCredits(userDiscord, userServerDiscordID, userCredits - 1);
-                       if (updateResult) {
-                           await interaction.followUp(`Você tem ${userCredits - 1} créditos restantes.`);
-                       } else {
-                           await interaction.followUp('Erro ao atualizar seus créditos. Por favor, tente novamente.');
-                       }
+                        const updateResult = await updateUserCredits(userDiscordID, serverId, userCredits - 1);
+                        if (updateResult) {
+                            await interaction.followUp(`Você tem ${userCredits - 1} créditos restantes.`);
+                        } else {
+                            await interaction.followUp('Erro ao atualizar seus créditos. Por favor, tente novamente.');
+                        }
                     } else {
-                        await interaction.reply({ content: 'Você não tem créditos suficientes para executar este comando.', ephemeral: true });
+                        const exampleEmbed = new EmbedBuilder()
+                            .setColor(0x0099FF)
+                            .setTitle('Recarregue!')
+                            .setDescription('Faça uma recarga para poder utilizar os comandos do bot Scripto!')
+                            .setThumbnail('https://cdnb.artstation.com/p/assets/images/images/045/972/517/large/flynn-coltman-bantha-nft.jpg?1643982096')
+                            .addFields({ name: 'Para fazer uma recarga, digite o comando', value: '/pix', inline: true })
+                            .setTimestamp();
+                    
+                        await interaction.reply({ embeds: [exampleEmbed], ephemeral: true });
                     }
                 } else {
                     await command.execute(interaction);
@@ -131,19 +146,6 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-//client.on(Events.InteractionCreate, async interaction => {
-
-
-    //fazer requisição do status do pagamento aqui.
-    //payment.get({
-    //    "id": '80741382976',
-    //}).then(response => {
-    //    console.log("Resultado da consulta de pagamento:", response);
-    //}).catch(error => {
-    //    console.log("Erro ao obter o pagamento:", error);
-    //});
-
-//});
 
 
 client.login(TOKEN_BOT)
