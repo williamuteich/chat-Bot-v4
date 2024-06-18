@@ -2,13 +2,14 @@ const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, Act
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('register')
-        .setDescription('Criar uma conta para utilizar o bot.'),
+        .setName('update')
+        .setDescription('Atualize Os Seus Dados.'),
+
     async execute(interaction) {
         try {
             const modal = new ModalBuilder()
-                .setCustomId('ModalRegister')
-                .setTitle('Preencha o formulário com os seus dados.');
+                .setCustomId('ModalUpdate')
+                .setTitle('Atualize Os Seus Dados.');
 
             const nomeInput = new TextInputBuilder()
                 .setCustomId('nomeInput')
@@ -49,9 +50,10 @@ module.exports = {
             modal.addComponents(primeiroNome, sobrenome, emailUsuario, cpfUsuario, secondActionRow);
 
             await interaction.showModal(modal);
+
         } catch (error) {
-            console.error('Erro ao iniciar registro:', error);
-            await interaction.reply({ content: 'Ocorreu um erro ao iniciar o registro. Por favor, tente novamente mais tarde.', ephemeral: true });
+            console.error('Erro Ao Tentar Atualizar Registro:', error);
+            await interaction.reply({ content: 'Ocorreu Um Erro Ao Tentar Atualizar o Registro. Por Favor, Tente Novamente Mais Tarde.', ephemeral: true });
         }
-    },
-};
+    }
+}

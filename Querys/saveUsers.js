@@ -20,7 +20,7 @@ async function salvarRegistros({ userDiscord, serverIdDiscord, serverNameDiscord
             { session }
         );
         await userServersCollection.insertOne(
-            { userId: userDiscord, serverId: serverIdDiscord, credits: 10 },
+            { userId: userDiscord, serverId: serverIdDiscord, credits: 5 },
             { session }
         );
 

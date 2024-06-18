@@ -34,7 +34,7 @@ module.exports = {
 
             const paymentData = {
                 transaction_amount: 1.00,
-                description: 'Payment for product',
+                description: 'Bot Scripto - Generative AI Art',
                 date_of_expiration: dateExpiration,
                 payment_method_id: 'pix',
                 token: TOKEN_CHAVEPIX,
