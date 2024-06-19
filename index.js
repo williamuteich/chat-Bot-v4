@@ -1,7 +1,7 @@
 const { Client, Events, GatewayIntentBits, Collection, EmbedBuilder  } = require('discord.js');
 const isUserRegistered = require('./Querys/consultaUsers');
 const salvarRegistros = require('./Querys/saveUsers');
-const updateRegistros = require('./Querys/saveUsers');
+const updateRegistros = require('./Querys/updateUsers');
 const { getUserCredits, updateUserCredits } = require('./credits');
 const { pollPayments } = require('./checkAndUpdatePayment');
 
@@ -158,58 +158,48 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-    if(interaction.isModalSubmit()) {
+    if (interaction.isModalSubmit()) {
         if (interaction.customId === 'ModalUpdate') {
-            console.log("entrou nesse modal aqui")
-            const userDiscord = interaction.member.user.id;
-            const isRegistered = await isUserRegistered(userDiscord);
+            console.log("Modal submitted");
 
-            if (!isRegistered) {
-                await interaction.reply("Usuário não existe em nosso Banco de Dados. Para Se Registrar digite o comando /register.");
-                return;
-            }
+            const userDiscord = interaction.member.user.id;
 
             const valueModal = interaction.fields.fields.map(field => [field.customId, field.value]);
             const data = Object.fromEntries(valueModal);
-    
-            data.userDiscord = userDiscord;
-            data.serverIdDiscord = interaction.guild.id; 
-            data.serverNameDiscord = interaction.guild.name; 
-    
+
             const { nomeInput, sobrenomeInput, emailInput, cpfInput, phoneInput } = data;
             if (!nomeInput || !sobrenomeInput || !emailInput || !cpfInput || !phoneInput) {
                 await interaction.reply({ content: 'Todos os campos são obrigatórios.', ephemeral: true });
                 return;
             }
 
-            if (cpfInput.length !== 11) {
-                await interaction.reply({ content: 'CPF inválido. O CPF deve conter 11 dígitos.', ephemeral: true });
-                return;
-            }
+           if (cpfInput.length !== 11) {
+               await interaction.reply({ content: 'CPF inválido. O CPF deve conter 11 dígitos.', ephemeral: true });
+               return;
+           }
 
-            if (phoneInput.length !== 11) {
-                await interaction.reply({ content: 'Telefone inválido. O telefone deve conter 11 dígitos.', ephemeral: true });
-                return;
-            }
-    
-            const result = await updateRegistros({
-                userDiscord: data.userDiscord,
-                serverIdDiscord: data.serverIdDiscord,
-                serverNameDiscord: data.serverNameDiscord,
-                email: emailInput,
-                name: nomeInput,
-                last_name: sobrenomeInput,
-                cpf: cpfInput,
-                phone: phoneInput
-            });
-    
+           if (phoneInput.length !== 11) {
+               await interaction.reply({ content: 'Telefone inválido. O telefone deve conter 11 dígitos.', ephemeral: true });
+               return;
+           }
+
+            const result = await updateRegistros(
+                nomeInput,
+                sobrenomeInput,
+                emailInput,
+                cpfInput,
+                phoneInput,
+                userDiscord 
+            );
+
             if (result.success) {
                 await interaction.reply({ content: 'Dados Atualizados com Sucesso!', ephemeral: true });
             } else {
-                await interaction.reply({ content: 'Erro ao registrar os dados.', ephemeral: true });
+                await interaction.reply({ content: result.message || 'Erro ao registrar os dados.', ephemeral: true });
             }
         }
     }
 });
+
 
 client.login(TOKEN_BOT)
